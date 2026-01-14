@@ -51,6 +51,28 @@ uv run pytest tests/test_<name>.py
 uv run pytest -v
 ```
 
+**Git Hooks:**
+
+Git hooks are used to maintain code quality automatically:
+
+```bash
+# Install hooks (run once after cloning)
+bash .githooks/install.sh
+
+# Uninstall hooks if needed
+bash .githooks/uninstall.sh
+```
+
+Hooks installed:
+- **pre-commit**: Runs Ruff and Black on staged files with auto-fix. If files are modified, you must re-stage and commit again.
+- **pre-push**: Runs Ruff, Black, and all tests before pushing. Blocks push if any check fails.
+
+To bypass hooks temporarily (not recommended):
+```bash
+git commit --no-verify
+git push --no-verify
+```
+
 ## Architecture
 
 ### Data Flow
