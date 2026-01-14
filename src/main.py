@@ -127,16 +127,6 @@ def main() -> None:
 
         except Exception as e:
             logger.error(f"❌ Error processing row {r.row_index}: {str(e)}")
-            logger.info("📝 Updating spreadsheet with error status...")
-            update_cells(
-                settings.sheets_id,
-                settings.sheet_name,
-                r.row_index,
-                {
-                    "Status": f"ERROR: {str(e)[:120]}",
-                },
-            )
-            logger.warning(f"⚠️  Row {r.row_index} marked with ERROR status")
 
     logger.info(f"\n{'='*80}")
     logger.success(f"🎉 Finished processing {len(to_publish)} rows!")

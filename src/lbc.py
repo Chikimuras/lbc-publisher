@@ -6,7 +6,7 @@ import random
 import time
 
 from playwright.sync_api import Page, sync_playwright
-from playwright_stealth import stealth as stealth_sync
+from playwright_stealth import Stealth
 from python_ghost_cursor.playwright_sync import create_cursor
 
 from .logger import logger
@@ -156,7 +156,8 @@ def publish_ad(
 
         # Apply playwright-stealth to hide automation signals
         logger.debug("🛡️  Applying stealth mode...")
-        stealth_sync(page)
+        stealth = Stealth()
+        stealth.apply_stealth_sync(page)
 
         # Create ghost cursor for ultra-realistic mouse movements
         logger.debug("🖱️  Initializing ghost cursor...")
@@ -174,7 +175,7 @@ def publish_ad(
         # Move to a random point with Bezier curves
         target_x = random.randint(300, 1600)
         target_y = random.randint(300, 900)
-        cursor.move_to(target_x, target_y)
+        cursor.move_to({"x": target_x, "y": target_y})
         _human_delay(delay_min * 0.5, delay_max * 0.8)
 
         # Random scroll
@@ -228,7 +229,7 @@ def _fill_form(
     """
     # Random mouse movement with ghost cursor before starting
     logger.debug("🖱️  Random mouse movement with Bezier curves...")
-    cursor.move_to(random.randint(300, 1700), random.randint(200, 800))
+    cursor.move_to({"x": random.randint(300, 1700), "y": random.randint(200, 800)})
     _human_delay(delay_min * 0.5, delay_max * 0.5)
 
     # Category selection (generic flow; adjust according to actual UI)
@@ -243,7 +244,7 @@ def _fill_form(
 
     # Random scroll between actions
     _random_scroll(page, delay_min, delay_max)
-    cursor.move_to(random.randint(400, 1600), random.randint(300, 900))
+    cursor.move_to({"x": random.randint(400, 1600), "y": random.randint(300, 900)})
 
     # Title - type character by character with cursor movement
     logger.debug("✏️  Typing title...")
@@ -256,7 +257,7 @@ def _fill_form(
     _human_delay(delay_min, delay_max)
 
     # Random cursor movement
-    cursor.move_to(random.randint(500, 1500), random.randint(400, 800))
+    cursor.move_to({"x": random.randint(500, 1500), "y": random.randint(400, 800)})
     _human_delay(delay_min * 0.3, delay_max * 0.6)
 
     # Description - type character by character (but faster for long text)
@@ -277,7 +278,7 @@ def _fill_form(
 
     # Random scroll and cursor movement
     _random_scroll(page, delay_min, delay_max)
-    cursor.move_to(random.randint(600, 1400), random.randint(500, 900))
+    cursor.move_to({"x": random.randint(600, 1400), "y": random.randint(500, 900)})
 
     # Price - type digit by digit
     logger.debug("💰 Typing price...")
@@ -290,7 +291,7 @@ def _fill_form(
     _human_delay(delay_min, delay_max)
 
     # Random cursor movement before image upload
-    cursor.move_to(random.randint(700, 1300), random.randint(600, 1000))
+    cursor.move_to({"x": random.randint(700, 1300), "y": random.randint(600, 1000)})
     _random_scroll(page, delay_min, delay_max)
 
     # Images upload: usually an <input type="file">
@@ -310,7 +311,7 @@ def _submit_and_get_url(page: Page, cursor) -> str:
     """
     # Random mouse movement with ghost cursor before clicking submit
     logger.debug("🖱️  Moving cursor before submission...")
-    cursor.move_to(random.randint(800, 1200), random.randint(700, 900))
+    cursor.move_to({"x": random.randint(800, 1200), "y": random.randint(700, 900)})
     time.sleep(random.uniform(0.5, 1.5))
 
     # Click publish
