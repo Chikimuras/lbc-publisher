@@ -50,8 +50,8 @@ uv sync
 # Install Git hooks
 bash .githooks/install.sh
 
-# Install Playwright browsers
-uv run playwright install chromium
+# Install Playwright browsers (Chrome for better TLS fingerprint)
+uv run playwright install chrome
 ```
 
 ### Configuration
@@ -101,7 +101,7 @@ On first run, you'll need to log in to Leboncoin manually (the browser will paus
 
 ## 🛡️ Anti-Detection Features
 
-This tool implements **13 sophisticated techniques** to bypass Datadome's bot detection:
+This tool implements **14 sophisticated techniques** to bypass Datadome's bot detection:
 
 ### Key Technologies
 
@@ -121,7 +121,12 @@ This tool implements **13 sophisticated techniques** to bypass Datadome's bot de
    - Bypasses IP-based detection and datacenter flagging
    - **Strongly recommended** for production use
 
-4. **Additional Protections**
+4. **Chrome Browser (Better TLS Fingerprint)**
+   - Uses Chrome instead of Chromium for realistic JA3 fingerprint
+   - Bypasses TLS fingerprinting detection
+   - Combined with proxies for maximum effectiveness
+
+5. **Additional Protections**
    - Character-by-character typing (80-200ms delays)
    - Random scrolling and mouse movements
    - Rate limiting and human-like delays
@@ -144,7 +149,7 @@ If you see these messages, you've been detected:
 ### Documentation
 
 For comprehensive anti-detection strategies, see:
-- **[ANTI_DETECTION.md](ANTI_DETECTION.md)**: Complete guide with 13 techniques
+- **[ANTI_DETECTION.md](ANTI_DETECTION.md)**: Complete guide with 14 techniques
 - Datadome analysis and ML detection patterns
 - Proxy provider recommendations and pricing
 - Configuration examples and troubleshooting
@@ -187,7 +192,7 @@ lbc-publisher/
 │   └── lbc.py          # Leboncoin automation with anti-detection
 ├── tests/              # Unit tests
 ├── .githooks/          # Git hooks for code quality
-├── ANTI_DETECTION.md   # Anti-Datadome strategies (13 techniques)
+├── ANTI_DETECTION.md   # Anti-Datadome strategies (14 techniques)
 ├── CLAUDE.md           # AI assistant documentation
 └── README.md           # This file
 ```

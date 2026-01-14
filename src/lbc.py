@@ -6,7 +6,7 @@ import random
 import time
 
 from playwright.sync_api import Page, sync_playwright
-from playwright_stealth import stealth_sync
+from playwright_stealth import stealth as stealth_sync
 from python_ghost_cursor.playwright_sync import create_cursor
 
 from .logger import logger
@@ -14,7 +14,7 @@ from .logger import logger
 LBC_DEPOSIT_URL = "https://www.leboncoin.fr/deposer-une-annonce"
 
 
-def _human_delay(delay_min: int, delay_max: int) -> None:
+def _human_delay(delay_min: float, delay_max: float) -> None:
     """Add a random delay to simulate human behavior."""
     delay = random.uniform(delay_min, delay_max)
     logger.debug(f"⏸️  Human-like delay: {delay:.1f}s")
@@ -106,6 +106,7 @@ def publish_ad(
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
+            channel="chrome",  # Use Chrome instead of Chromium for better TLS fingerprint
             headless=headless,
             args=[
                 "--disable-blink-features=AutomationControlled",  # Hide automation
@@ -115,6 +116,7 @@ def publish_ad(
                 "--disable-web-security",  # Prevent CORS issues
             ],
         )
+        logger.info("🌐 Using Chrome browser (better TLS fingerprint vs Chromium)")
         logger.debug(f"🔐 Loading storage state: {os.path.exists(storage_state_path)}")
         context = browser.new_context(
             storage_state=(

@@ -243,6 +243,38 @@ LBC_HEADLESS=false  # Navigateur visible
 
 **Impact** : Les sites détectent facilement le mode headless. Le mode visible est plus sûr.
 
+### 14. **Chrome au lieu de Chromium (🆕 2026)**
+
+```python
+browser = p.chromium.launch(
+    channel="chrome",  # Use Chrome instead of Chromium
+    headless=headless,
+    args=[...],
+)
+```
+
+**Pourquoi c'est important** :
+- **TLS Fingerprinting (JA3)** : Datadome analyse la poignée de main SSL/TLS
+- Chrome a un **fingerprint TLS différent et plus réaliste** que Chromium
+- Les bibliothèques d'automatisation utilisent généralement Chromium par défaut
+- Datadome peut détecter les fingerprints TLS de Chromium
+
+**Différences Chrome vs Chromium** :
+- **Chrome** : Navigateur officiel de Google avec codecs propriétaires, mises à jour automatiques, branding Google
+- **Chromium** : Version open-source sans certains composants propriétaires
+- **JA3 Hash** : Chrome et Chromium produisent des hashes JA3 légèrement différents
+- Datadome flag les JA3 de Chromium comme suspects
+
+**Installation** :
+```bash
+# Au lieu de chromium
+uv run playwright install chrome
+```
+
+**Impact** : **IMPORTANT** pour contourner la détection JA3. Combiné avec des proxies résidentiels, cela réduit considérablement le risque de détection TLS.
+
+**Note** : Cette technique seule ne suffit pas - elle doit être combinée avec des proxies résidentiels pour une efficacité maximale.
+
 ## 📋 Recommandations Supplémentaires
 
 ### 1. **🔴 CRITIQUE : Proxies Résidentiels**
