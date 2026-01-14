@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
+import random
 import tempfile
+import time
 
 from .drive import download_file, extract_drive_folder_id, list_images_in_folder
 from .lbc import AdPayload, publish_ad
@@ -29,6 +31,13 @@ def main() -> None:
     if not to_publish:
         logger.warning("⚠️  No rows to publish. Exiting.")
         return
+
+    # Limit number of ads per run to avoid detection
+    if len(to_publish) > settings.lbc_max_ads_per_run:
+        logger.warning(
+            f"⚠️  Limiting to {settings.lbc_max_ads_per_run} ads per run (found {len(to_publish)})"
+        )
+        to_publish = to_publish[: settings.lbc_max_ads_per_run]
 
     for idx, r in enumerate(to_publish, 1):
         logger.info(f"\n{'='*80}")
@@ -84,7 +93,11 @@ def main() -> None:
                 # Publish ad
                 logger.info("🌐 Publishing ad on Leboncoin...")
                 url = publish_ad(
-                    payload, settings.lbc_storage_state, headless=settings.lbc_headless
+                    payload,
+                    settings.lbc_storage_state,
+                    headless=settings.lbc_headless,
+                    delay_min=settings.lbc_delay_min,
+                    delay_max=settings.lbc_delay_max,
                 )
                 logger.success(f"✅ Ad published successfully: {url}")
 
@@ -100,6 +113,14 @@ def main() -> None:
                 },
             )
             logger.success(f"✓ Row {r.row_index} marked as PUBLISHED")
+
+            # Wait before next ad to avoid rate limiting
+            if idx < len(to_publish):
+                delay = random.randint(
+                    settings.lbc_delay_min * 10, settings.lbc_delay_max * 10
+                )
+                logger.info(f"⏳ Waiting {delay}s before next ad to avoid detection...")
+                time.sleep(delay)
 
         except Exception as e:
             logger.error(f"❌ Error processing row {r.row_index}: {str(e)}")

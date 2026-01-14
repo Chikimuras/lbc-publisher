@@ -33,6 +33,15 @@ class Settings(BaseSettings):
     lbc_headless: bool = Field(
         default=False, description="Run Playwright in headless mode"
     )
+    lbc_delay_min: int = Field(
+        default=2, description="Minimum delay in seconds between actions"
+    )
+    lbc_delay_max: int = Field(
+        default=5, description="Maximum delay in seconds between actions"
+    )
+    lbc_max_ads_per_run: int = Field(
+        default=5, description="Maximum number of ads to publish per run"
+    )
 
 
 # Global settings instance
