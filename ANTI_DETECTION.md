@@ -35,31 +35,117 @@ def _human_delay(delay_min: int, delay_max: int) -> None:
     time.sleep(delay)
 ```
 
-### 3. **Anti-Automation Headers**
+### 3. **Frappe Réaliste Character-by-Character**
+
+Au lieu de remplir les champs instantanément, le texte est tapé caractère par caractère avec des délais réalistes :
+
+```python
+# Titre : 80-180ms par caractère
+for char in payload.title:
+    title_field.type(char, delay=random.uniform(80, 180))
+
+# Description : 30-80ms par caractère (plus rapide pour textes longs)
+for char in chunk:
+    desc_field.type(char, delay=random.uniform(30, 80))
+
+# Prix : 100-200ms par chiffre
+for digit in price_str:
+    price_field.type(digit, delay=random.uniform(100, 200))
+```
+
+**Impact** : Simule une vitesse de frappe humaine réaliste, évite la détection de "superhuman clicking speed".
+
+### 4. **Mouvements de Souris Aléatoires**
+
+```python
+def _move_mouse_randomly(page: Page) -> None:
+    x = random.randint(100, 1800)
+    y = random.randint(100, 1000)
+    page.mouse.move(x, y, steps=random.randint(10, 30))
+```
+
+- Mouvements de souris entre chaque action
+- Déplacements fluides avec plusieurs étapes
+- Positionnement précis avant de cliquer sur les boutons
+
+**Impact** : Simule le comportement naturel d'un utilisateur qui déplace sa souris.
+
+### 5. **Scroll Aléatoire**
+
+```python
+def _random_scroll(page: Page, delay_min: int, delay_max: int) -> None:
+    scroll_amount = random.randint(100, 500)
+    page.evaluate(f"window.scrollBy(0, {scroll_amount})")
+```
+
+**Impact** : Simule la lecture de la page, un comportement humain naturel.
+
+### 6. **Anti-Automation Headers**
 
 ```python
 browser = p.chromium.launch(
-    headless=False,  # Navigateur visible
+    headless=False,
     args=[
-        "--disable-blink-features=AutomationControlled",  # Masque l'automatisation
+        "--disable-blink-features=AutomationControlled",
+        "--disable-dev-shm-usage",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-web-security",
     ],
 )
 ```
 
-**Impact** : Supprime les flags JavaScript qui identifient Playwright/Selenium.
+**Impact** : Supprime les flags qui identifient Playwright/Selenium.
 
-### 4. **User Agent Réaliste**
+### 7. **Injection JavaScript Anti-Détection**
+
+```python
+context.add_init_script("""
+    Object.defineProperty(navigator, 'webdriver', {
+        get: () => undefined
+    });
+
+    window.chrome = {
+        runtime: {}
+    };
+
+    Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5]
+    });
+
+    Object.defineProperty(navigator, 'languages', {
+        get: () => ['fr-FR', 'fr', 'en-US', 'en']
+    });
+""")
+```
+
+**Impact** : Masque les propriétés JavaScript qui révèlent l'automatisation.
+
+### 8. **Vérification JavaScript**
+
+```python
+def _verify_javascript(page: Page) -> None:
+    result = page.evaluate("() => { return navigator.userAgent && typeof window !== 'undefined' }")
+```
+
+**Impact** : S'assure que JavaScript fonctionne correctement, évite les erreurs "JavaScript blocking".
+
+### 9. **User Agent et Contexte Réalistes**
 
 ```python
 context = browser.new_context(
     viewport={"width": 1920, "height": 1080},
-    user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36..."
+    user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36...",
+    locale="fr-FR",
+    timezone_id="Europe/Paris",
+    geolocation={"longitude": 2.3522, "latitude": 48.8566},  # Paris
+    permissions=["geolocation"],
 )
 ```
 
-**Impact** : Se fait passer pour un vrai navigateur Chrome sur macOS.
+**Impact** : Se fait passer pour un vrai navigateur Chrome sur macOS, en France, à Paris.
 
-### 5. **Session Persistante**
+### 10. **Session Persistante**
 
 - Sauvegarde de l'état de session (cookies, localStorage)
 - Réutilisation de la même session entre les exécutions
@@ -72,7 +158,7 @@ context = browser.new_context(
 )
 ```
 
-### 6. **Mode Non-Headless par Défaut**
+### 11. **Mode Non-Headless par Défaut**
 
 ```env
 LBC_HEADLESS=false  # Navigateur visible
@@ -178,12 +264,37 @@ Si vous êtes détecté, vous verrez :
 - 🚫 **Ban temporaire** : "Trop de tentatives, réessayez plus tard"
 - 🚫 **Ban de compte** : Compte suspendu ou bloqué
 - 🚫 **Rate limiting** : Annonces refusées sans raison claire
+- 🚫 **Message de blocage** : "Quelque chose dans le comportement du navigateur nous a intrigué"
+
+### Message de Blocage Spécifique
+
+Si vous voyez ce message :
+```
+Pourquoi ce blocage ? Quelque chose dans le comportement du navigateur nous a intrigué.
+Diverses possibilités :
+- vous surfez et cliquez à une vitesse surhumaine
+- quelque chose bloque le fonctionnement de javascript sur votre ordinateur
+- un robot est sur le même réseau (IP X.X.X.X) que vous
+```
+
+**Ce que cela signifie** :
+1. **Vitesse surhumaine** : Leboncoin a détecté que vos actions étaient trop rapides
+2. **JavaScript bloqué** : Problème avec l'exécution JavaScript (maintenant résolu avec `_verify_javascript()`)
+3. **IP flaggée** : Votre adresse IP a été marquée comme suspecte
 
 **Actions à prendre** :
-1. Arrêtez immédiatement l'automatisation
-2. Attendez 24-48h
-3. Réduisez drastiquement les paramètres
-4. Envisagez de contacter le support Leboncoin
+1. **Arrêtez immédiatement** l'automatisation
+2. **Attendez 24-48h** pour que votre IP soit "refroidie"
+3. **Augmentez drastiquement les délais** :
+   ```env
+   LBC_DELAY_MIN=8
+   LBC_DELAY_MAX=15
+   LBC_MAX_ADS_PER_RUN=2
+   ```
+4. **Vérifiez que JavaScript fonctionne** : Les nouvelles fonctions de vérification le font automatiquement
+5. **Considérez un proxy résidentiel** : Si votre IP est définitivement bannie
+6. **Testez manuellement** : Essayez de publier une annonce manuellement pour voir si votre compte fonctionne
+7. **Contactez le support Leboncoin** : Expliquez votre situation et demandez une autorisation
 
 ## 🎯 Conclusion
 
