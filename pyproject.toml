@@ -4,4 +4,73 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "google-api-python-client>=2.187.0",
+    "google-auth>=2.45.0",
+    "google-auth-httplib2>=0.3.0",
+    "google-auth-oauthlib>=1.2.2",
+    "playwright>=1.57.0",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-mock>=3.15.1",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+skip-string-normalization = false
+exclude = '''
+/(
+    \.venv
+  | venv
+  | build
+  | dist
+  | migrations
+)/
+'''
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+fix = true
+show-fixes = true
+
+exclude = [
+  ".venv",
+  "venv",
+  "build",
+  "dist",
+  "migrations",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # isort (import ordering)
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "SIM", # flake8-simplify
+  "C4",  # flake8-comprehensions
+]
+
+ignore = [
+  "E203", # Whitespace before ':' (Black compatible)
+  "E501", # Line length handled by Black
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**.py" = ["S101"]
