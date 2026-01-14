@@ -6,6 +6,8 @@ import random
 import time
 
 from playwright.sync_api import Page, sync_playwright
+from playwright_stealth import stealth_sync
+from python_ghost_cursor.playwright_sync import create_cursor
 
 from .logger import logger
 
@@ -80,6 +82,9 @@ def publish_ad(
     headless: bool,
     delay_min: int = 2,
     delay_max: int = 5,
+    proxy_server: str | None = None,
+    proxy_username: str | None = None,
+    proxy_password: str | None = None,
 ) -> str:
     """
     Returns the published ad URL.
@@ -87,6 +92,17 @@ def publish_ad(
     """
     logger.debug(f"🌐 Initializing browser (headless={headless})")
     os.makedirs(os.path.dirname(storage_state_path), exist_ok=True)
+
+    # Build proxy config if provided
+    proxy_config = None
+    if proxy_server:
+        proxy_config = {"server": proxy_server}
+        if proxy_username and proxy_password:
+            proxy_config["username"] = proxy_username
+            proxy_config["password"] = proxy_password
+        logger.info(f"🔒 Using proxy: {proxy_server}")
+    else:
+        logger.warning("⚠️  No proxy configured - Datadome detection risk is HIGH")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(
@@ -110,6 +126,7 @@ def publish_ad(
             timezone_id="Europe/Paris",  # French timezone
             geolocation={"longitude": 2.3522, "latitude": 48.8566},  # Paris coordinates
             permissions=["geolocation"],
+            proxy=proxy_config,  # Add proxy configuration
         )
 
         # Inject JavaScript to further hide automation
@@ -135,6 +152,14 @@ def publish_ad(
 
         page = context.new_page()
 
+        # Apply playwright-stealth to hide automation signals
+        logger.debug("🛡️  Applying stealth mode...")
+        stealth_sync(page)
+
+        # Create ghost cursor for ultra-realistic mouse movements
+        logger.debug("🖱️  Initializing ghost cursor...")
+        cursor = create_cursor(page)
+
         logger.info(f"🌐 Navigating to Leboncoin: {LBC_DEPOSIT_URL}")
         page.goto(LBC_DEPOSIT_URL, wait_until="domcontentloaded")
         _human_delay(delay_min, delay_max)
@@ -142,8 +167,15 @@ def publish_ad(
         # Verify JavaScript is working
         _verify_javascript(page)
 
-        # Random initial mouse movement and scroll
-        _move_mouse_randomly(page)
+        # Random initial mouse movement with ghost cursor
+        logger.debug("🖱️  Performing initial human-like mouse movements...")
+        # Move to a random point with Bezier curves
+        target_x = random.randint(300, 1600)
+        target_y = random.randint(300, 900)
+        cursor.move_to(target_x, target_y)
+        _human_delay(delay_min * 0.5, delay_max * 0.8)
+
+        # Random scroll
         _random_scroll(page, delay_min, delay_max)
 
         # If you're not logged in, do it manually on first run:
@@ -151,11 +183,11 @@ def publish_ad(
 
         # Fill the deposit form
         logger.info("📝 Filling ad form...")
-        _fill_form(page, payload, delay_min, delay_max)
+        _fill_form(page, payload, delay_min, delay_max, cursor)
 
         # Submit and extract URL
         logger.info("📤 Submitting ad...")
-        published_url = _submit_and_get_url(page)
+        published_url = _submit_and_get_url(page, cursor)
 
         logger.debug(f"💾 Saving session state to {storage_state_path}")
         context.storage_state(path=storage_state_path)
@@ -185,45 +217,50 @@ def _ensure_logged_in(page: Page) -> None:
         logger.debug("✓ Already logged in")
 
 
-def _fill_form(page: Page, payload: AdPayload, delay_min: int, delay_max: int) -> None:
+def _fill_form(
+    page: Page, payload: AdPayload, delay_min: int, delay_max: int, cursor
+) -> None:
     """
     Fill fields using role/label-based selectors as much as possible.
     You will likely need to adjust these once you inspect the page.
     """
-    # Random mouse movement before starting
-    _move_mouse_randomly(page)
+    # Random mouse movement with ghost cursor before starting
+    logger.debug("🖱️  Random mouse movement with Bezier curves...")
+    cursor.move_to(random.randint(300, 1700), random.randint(200, 800))
     _human_delay(delay_min * 0.5, delay_max * 0.5)
 
     # Category selection (generic flow; adjust according to actual UI)
     # Example approach: search/select category by visible text
     logger.debug("📂 Selecting category...")
-    page.get_by_text("Catégorie", exact=False).first.click()
+    cat_elem = page.get_by_text("Catégorie", exact=False).first
+    cursor.click(cat_elem)
     _human_delay(delay_min, delay_max)
-    page.get_by_text(payload.category_label, exact=False).first.click()
+    cat_option = page.get_by_text(payload.category_label, exact=False).first
+    cursor.click(cat_option)
     _human_delay(delay_min, delay_max)
 
     # Random scroll between actions
     _random_scroll(page, delay_min, delay_max)
-    _move_mouse_randomly(page)
+    cursor.move_to(random.randint(400, 1600), random.randint(300, 900))
 
-    # Title - type character by character
+    # Title - type character by character with cursor movement
     logger.debug("✏️  Typing title...")
     title_field = page.get_by_label("Titre", exact=False)
-    title_field.click()
+    cursor.click(title_field)
     _human_delay(delay_min * 0.3, delay_max * 0.5)
     # Type with realistic delays (100-200ms per character)
     for char in payload.title:
         title_field.type(char, delay=random.uniform(80, 180))
     _human_delay(delay_min, delay_max)
 
-    # Random behavior
-    _move_mouse_randomly(page)
+    # Random cursor movement
+    cursor.move_to(random.randint(500, 1500), random.randint(400, 800))
     _human_delay(delay_min * 0.3, delay_max * 0.6)
 
     # Description - type character by character (but faster for long text)
     logger.debug("📄 Typing description...")
     desc_field = page.get_by_label("Description", exact=False)
-    desc_field.click()
+    cursor.click(desc_field)
     _human_delay(delay_min * 0.3, delay_max * 0.5)
     # For long descriptions, type in chunks with delays
     chunk_size = 50
@@ -236,22 +273,22 @@ def _fill_form(page: Page, payload: AdPayload, delay_min: int, delay_max: int) -
             time.sleep(random.uniform(0.3, 0.8))
     _human_delay(delay_min, delay_max)
 
-    # Random scroll
+    # Random scroll and cursor movement
     _random_scroll(page, delay_min, delay_max)
-    _move_mouse_randomly(page)
+    cursor.move_to(random.randint(600, 1400), random.randint(500, 900))
 
     # Price - type digit by digit
     logger.debug("💰 Typing price...")
     price_field = page.get_by_label("Prix", exact=False)
-    price_field.click()
+    cursor.click(price_field)
     _human_delay(delay_min * 0.3, delay_max * 0.5)
     price_str = str(payload.price_eur)
     for digit in price_str:
         price_field.type(digit, delay=random.uniform(100, 200))
     _human_delay(delay_min, delay_max)
 
-    # Random behavior before image upload
-    _move_mouse_randomly(page)
+    # Random cursor movement before image upload
+    cursor.move_to(random.randint(700, 1300), random.randint(600, 1000))
     _random_scroll(page, delay_min, delay_max)
 
     # Images upload: usually an <input type="file">
@@ -265,12 +302,13 @@ def _fill_form(page: Page, payload: AdPayload, delay_min: int, delay_max: int) -
     _human_delay(delay_min * 1.5, delay_max * 2)  # Longer delay after images
 
 
-def _submit_and_get_url(page: Page) -> str:
+def _submit_and_get_url(page: Page, cursor) -> str:
     """
     Click publish button and return the resulting URL.
     """
-    # Random mouse movement before clicking submit
-    _move_mouse_randomly(page)
+    # Random mouse movement with ghost cursor before clicking submit
+    logger.debug("🖱️  Moving cursor before submission...")
+    cursor.move_to(random.randint(800, 1200), random.randint(700, 900))
     time.sleep(random.uniform(0.5, 1.5))
 
     # Click publish
@@ -281,16 +319,10 @@ def _submit_and_get_url(page: Page) -> str:
         page.pause()
         raise RuntimeError("Publish button not found (selector update needed).")
 
-    # Move mouse to button area before clicking (more human-like)
-    box = btn.first.bounding_box()
-    if box:
-        x = box["x"] + box["width"] / 2 + random.uniform(-10, 10)
-        y = box["y"] + box["height"] / 2 + random.uniform(-5, 5)
-        page.mouse.move(x, y, steps=random.randint(15, 30))
-        time.sleep(random.uniform(0.3, 0.7))
-
-    logger.debug("🖱️  Clicking publish button...")
-    btn.first.click()
+    # Use ghost cursor to move to button and click (ultra-realistic with Bezier curves)
+    logger.debug("🖱️  Clicking publish button with realistic mouse movement...")
+    cursor.click(btn.first)
+    time.sleep(random.uniform(0.3, 0.7))
 
     # Wait for navigation or confirmation page
     page.wait_for_load_state("networkidle")

@@ -98,6 +98,9 @@ def main() -> None:
                     headless=settings.lbc_headless,
                     delay_min=settings.lbc_delay_min,
                     delay_max=settings.lbc_delay_max,
+                    proxy_server=settings.proxy_server,
+                    proxy_username=settings.proxy_username,
+                    proxy_password=settings.proxy_password,
                 )
                 logger.success(f"✅ Ad published successfully: {url}")
 

@@ -43,6 +43,17 @@ class Settings(BaseSettings):
         default=5, description="Maximum number of ads to publish per run"
     )
 
+    # Proxy configuration (optional, but strongly recommended against Datadome)
+    proxy_server: str | None = Field(
+        default=None, description="Proxy server URL (e.g., http://gate.proxy.com:7000)"
+    )
+    proxy_username: str | None = Field(
+        default=None, description="Proxy authentication username"
+    )
+    proxy_password: str | None = Field(
+        default=None, description="Proxy authentication password"
+    )
+
 
 # Global settings instance
 _settings: Settings | None = None

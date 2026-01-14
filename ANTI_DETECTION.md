@@ -10,7 +10,31 @@ L'automatisation peut violer les Conditions d'Utilisation de Leboncoin. Utilisez
 - **Compte réel** : Utilisez votre propre compte authentique
 - **Contenu légitime** : Ne publiez que du contenu authentique et légal
 
-## 🛡️ Techniques Implémentées
+## 🚨 Leboncoin utilise Datadome
+
+**Datadome** est l'un des systèmes anti-bot les plus sophistiqués du marché en 2026. Il analyse **plus de 1000 signaux différents** pour détecter les bots :
+
+### Signaux Analysés par Datadome
+
+1. **TLS Fingerprinting (JA3)** : Analyse la poignée de main SSL/TLS
+2. **Mouvements de souris** : Patterns, vitesse, accélération, trajectoires
+3. **Timing des actions** : Vitesse de clic, délais entre actions
+4. **JavaScript Runtime** : Propriétés navigator, window, document
+5. **Hardware/OS** : Informations système, résolution, timezone
+6. **Browser Fingerprinting** : Plugins, fonts, canvas, WebGL
+7. **CDP Detection** : Détecte les commandes Chrome DevTools Protocol
+8. **IP Reputation** : Type d'IP (datacenter vs résidentiel), historique
+9. **Comportement HTTP** : Headers, ordre, versions, compression
+10. **Patterns de requêtes** : Fréquence, volume, timing
+
+### Pourquoi C'est Difficile
+
+- **Machine Learning** : Datadome utilise l'IA pour détecter les patterns anormaux
+- **Évolution Constante** : Les règles changent fréquemment
+- **Multi-Layered** : Combine plusieurs techniques de détection
+- **Scoring System** : Chaque signal contribue à un score de confiance
+
+## 🛡️ Techniques Implémentées Contre Datadome
 
 ### 1. **Rate Limiting (Limitation du débit)**
 
@@ -158,7 +182,60 @@ context = browser.new_context(
 )
 ```
 
-### 11. **Mode Non-Headless par Défaut**
+### 11. **Playwright-Stealth (🆕 2026)**
+
+```python
+from playwright_stealth import stealth_sync
+
+page = context.new_page()
+stealth_sync(page)  # Applique automatiquement tous les patches
+```
+
+**Ce qu'il fait** :
+- Masque plus de **200 signaux d'automatisation**
+- Patch `navigator.webdriver`, `navigator.plugins`, etc.
+- Modifie les propriétés Chrome DevTools Protocol
+- Hide automation flags dans Chromium
+
+**Impact** : **CRITIQUE** pour contourner Datadome. C'est la première ligne de défense contre la détection CDP.
+
+**Limites** :
+- Ne protège pas contre l'analyse TLS (nécessite des proxies)
+- Ne protège pas contre l'analyse comportementale (nécessite des délais réalistes)
+- Open-source, donc Datadome peut l'étudier
+
+### 12. **Ghost Cursor - Mouvements Réalistes avec Bézier (🆕 2026)**
+
+```python
+from python_ghost_cursor.playwright_sync import create_cursor
+
+cursor = create_cursor(page)
+
+# Mouvement naturel avec courbe de Bézier
+cursor.move_to(x, y)
+
+# Clic ultra-réaliste (mouvement + clic)
+cursor.click(element)
+```
+
+**Pourquoi c'est crucial** :
+- Datadome analyse **les trajectoires de souris** en temps réel
+- Les mouvements en ligne droite sont **instantanément détectés**
+- Les courbes de Bézier imitent les mouvements humains naturels
+- Vitesse variable et accélération réaliste
+
+**Comparaison** :
+```python
+# ❌ MAUVAIS (détecté par Datadome)
+page.mouse.move(x, y, steps=10)  # Ligne droite, vitesse constante
+
+# ✅ BON (passe Datadome)
+cursor.move_to(x, y)  # Courbe Bézier, accélération variable
+```
+
+**Impact** : **ESSENTIEL** contre Datadome. Les mouvements de souris sont l'un des signaux les plus analysés.
+
+### 13. **Mode Non-Headless par Défaut**
 
 ```env
 LBC_HEADLESS=false  # Navigateur visible
@@ -168,21 +245,143 @@ LBC_HEADLESS=false  # Navigateur visible
 
 ## 📋 Recommandations Supplémentaires
 
-### 1. **Rotation de Proxies (Non implémenté)**
+### 1. **🔴 CRITIQUE : Proxies Résidentiels**
 
-Pour éviter le ban d'IP, utilisez des proxies résidentiels :
+**⚠️ SANS PROXIES RÉSIDENTIELS, DATADOME VOUS DÉTECTERA PRESQUE À COUP SÛR**
+
+Datadome analyse votre IP et détecte immédiatement :
+- Les IPs datacenter (AWS, OVH, Digital Ocean, etc.)
+- Les VPNs commerciaux (NordVPN, ExpressVPN, etc.)
+- Les proxies gratuits
+- Les IPs déjà flaggées comme suspectes
+
+#### Pourquoi les Proxies Résidentiels ?
+
+Les proxies résidentiels utilisent de **vraies IPs de particuliers** :
+- ✅ Indétectables par Datadome (IPs légitimes de FAI)
+- ✅ Localisation française réaliste
+- ✅ Pas de flagging automatique
+- ✅ Meilleur taux de succès (90%+ selon les sources)
+
+#### Fournisseurs Recommandés (2026)
+
+**Premium (Chers mais Fiables)** :
+1. **Bright Data** (ex-Luminati) - 40M+ IPs résidentielles
+   - Prix : ~500€/mois pour 40GB
+   - Qualité : Excellente
+   - France : Oui
+
+2. **Oxylabs** - 100M+ IPs résidentielles
+   - Prix : ~300€/mois
+   - Qualité : Excellente
+   - France : Oui
+
+3. **Smartproxy** - Plus abordable
+   - Prix : ~75€/mois pour 5GB
+   - Qualité : Bonne
+   - France : Oui
+
+**Budget** :
+- **Proxy-Cheap** : ~50€/mois pour 5GB
+- **IPRoyal** : ~40€/mois pour 5GB
+
+⚠️ **Évitez** :
+- ❌ Proxies gratuits (100% détectés)
+- ❌ Proxies datacenter (détectés instantanément)
+- ❌ VPNs grand public (flaggés par Datadome)
+
+#### Configuration dans le Code
+
+**Option 1 : Configuration Manuelle**
+
+Ajoutez à votre `.env` :
+```env
+# Proxy résidentiel français
+PROXY_SERVER=http://gate.smartproxy.com:7000
+PROXY_USERNAME=your_username
+PROXY_PASSWORD=your_password
+```
+
+**Option 2 : Modifier `src/lbc.py`**
 
 ```python
+# Dans publish_ad(), ajouter le proxy au contexte
 context = browser.new_context(
+    storage_state=(...),
+    viewport={"width": 1920, "height": 1080},
+    user_agent="Mozilla/5.0...",
+    locale="fr-FR",
+    timezone_id="Europe/Paris",
+    geolocation={"longitude": 2.3522, "latitude": 48.8566},
+    permissions=["geolocation"],
+    # 🆕 Ajouter le proxy résidentiel
     proxy={
-        "server": "http://proxy-server:port",
-        "username": "user",
-        "password": "pass"
-    }
+        "server": os.getenv("PROXY_SERVER"),
+        "username": os.getenv("PROXY_USERNAME"),
+        "password": os.getenv("PROXY_PASSWORD"),
+    } if os.getenv("PROXY_SERVER") else None,
 )
 ```
 
-⚠️ **Attention** : Utilisez uniquement des proxies légitimes et évitez les proxies gratuits.
+#### Test de Votre Proxy
+
+Avant d'utiliser votre proxy, testez-le :
+
+```python
+import requests
+
+proxies = {
+    "http": "http://username:password@gate.smartproxy.com:7000",
+    "https": "http://username:password@gate.smartproxy.com:7000",
+}
+
+# Vérifier l'IP
+r = requests.get("https://api.ipify.org?format=json", proxies=proxies)
+print(f"IP visible: {r.json()['ip']}")
+
+# Vérifier le pays
+r = requests.get("https://ipapi.co/json/", proxies=proxies)
+print(f"Pays: {r.json()['country_name']}")  # Devrait être "France"
+```
+
+#### Configuration Optimale
+
+```env
+# Dans .env
+PROXY_SERVER=http://gate.smartproxy.com:7000
+PROXY_USERNAME=your_username
+PROXY_PASSWORD=your_password
+
+# Réduire encore plus les délais car le proxy ajoute de la latence
+LBC_DELAY_MIN=5
+LBC_DELAY_MAX=10
+LBC_MAX_ADS_PER_RUN=3
+```
+
+**💡 Pro Tip** : Utilisez des proxies français avec géolocalisation à Paris pour être cohérent avec la config du navigateur.
+
+### 2. **Rotation de Proxies (Avancé)**
+
+Si vous avez un pool de proxies résidentiels, implémentez la rotation :
+
+```python
+import random
+
+PROXY_POOL = [
+    {"server": "http://gate1.proxy.com:7000", "username": "user1", "password": "pass1"},
+    {"server": "http://gate2.proxy.com:7000", "username": "user2", "password": "pass2"},
+    # ... plus de proxies
+]
+
+# Dans publish_ad()
+proxy = random.choice(PROXY_POOL)
+context = browser.new_context(
+    # ...
+    proxy=proxy
+)
+```
+
+⚠️ **Attention** : La rotation peut être suspecte si elle est trop fréquente. Gardez le même proxy pour toute une session.
 
 ### 2. **Limiter la Fréquence**
 
