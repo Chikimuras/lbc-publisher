@@ -5,6 +5,7 @@ from typing import Any
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
+from .logger import logger
 from .models import SheetRow
 from .settings import get_settings
 
@@ -46,8 +47,11 @@ def get_rows(sheets_id: str, sheet_name: str) -> list[SheetRow]:
     """
     Read the whole sheet (used range) and map rows by header names.
     """
+    logger.debug("📊 Connecting to Google Sheets API...")
     service = build("sheets", "v4", credentials=_creds())
     rng = f"{sheet_name}!A:Z"
+    logger.debug(f"📖 Reading range: {rng}")
+
     res = (
         service.spreadsheets()
         .values()
@@ -56,10 +60,13 @@ def get_rows(sheets_id: str, sheet_name: str) -> list[SheetRow]:
     )
     values: list[list[str]] = res.get("values", [])
     if not values:
+        logger.warning("⚠️  Empty spreadsheet")
         return []
 
     header = values[0]
+    logger.debug(f"📋 Found {len(header)} columns in header")
     col_index = {name: header.index(name) for name in HEADERS if name in header}
+    logger.debug(f"✓ Mapped {len(col_index)} expected columns")
 
     def cell(row: list[str], name: str) -> str:
         i = col_index.get(name)
@@ -105,6 +112,7 @@ def update_cells(
     """
     Update specific columns in a given row by header name.
     """
+    logger.debug(f"📝 Updating row {row_index} with {len(updates)} cell(s)")
     service = build("sheets", "v4", credentials=_creds())
 
     # Read header to find column letters
@@ -121,18 +129,22 @@ def update_cells(
     for name, val in updates.items():
         idx = col_map.get(name)
         if idx is None:
+            logger.warning(f"⚠️  Column '{name}' not found in header, skipping")
             continue
         col_letter = _col_to_a1(idx)
         a1 = f"{sheet_name}!{col_letter}{row_index}"
         data.append({"range": a1, "values": [[val]]})
+        logger.debug(f"  ✓ {name} = {val[:50]}...")  # Truncate long values
 
     if not data:
+        logger.warning("⚠️  No valid cells to update")
         return
 
     body = {"valueInputOption": "USER_ENTERED", "data": data}
     service.spreadsheets().values().batchUpdate(
         spreadsheetId=sheets_id, body=body
     ).execute()
+    logger.debug(f"✓ Successfully updated {len(data)} cell(s)")
 
 
 def _col_to_a1(idx: int) -> str:

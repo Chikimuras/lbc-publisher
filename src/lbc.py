@@ -5,6 +5,8 @@ import os
 
 from playwright.sync_api import Page, sync_playwright
 
+from .logger import logger
+
 LBC_DEPOSIT_URL = "https://www.leboncoin.fr/deposer-une-annonce"
 
 
@@ -22,10 +24,12 @@ def publish_ad(payload: AdPayload, storage_state_path: str, headless: bool) -> s
     Returns the published ad URL.
     Note: Leboncoin may trigger bot checks; keep headless=False initially.
     """
+    logger.debug(f"🌐 Initializing browser (headless={headless})")
     os.makedirs(os.path.dirname(storage_state_path), exist_ok=True)
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=headless)
+        logger.debug(f"🔐 Loading storage state: {os.path.exists(storage_state_path)}")
         context = browser.new_context(
             storage_state=(
                 storage_state_path if os.path.exists(storage_state_path) else None
@@ -33,20 +37,25 @@ def publish_ad(payload: AdPayload, storage_state_path: str, headless: bool) -> s
         )
         page = context.new_page()
 
+        logger.info(f"🌐 Navigating to Leboncoin: {LBC_DEPOSIT_URL}")
         page.goto(LBC_DEPOSIT_URL, wait_until="domcontentloaded")
 
         # If you're not logged in, do it manually on first run:
         _ensure_logged_in(page)
 
         # Fill the deposit form
+        logger.info("📝 Filling ad form...")
         _fill_form(page, payload)
 
         # Submit and extract URL
+        logger.info("📤 Submitting ad...")
         published_url = _submit_and_get_url(page)
 
+        logger.debug(f"💾 Saving session state to {storage_state_path}")
         context.storage_state(path=storage_state_path)
         context.close()
         browser.close()
+        logger.debug("🔚 Browser closed")
         return published_url
 
 
@@ -58,12 +67,16 @@ def _ensure_logged_in(page: Page) -> None:
     # This is intentionally generic because Leboncoin changes selectors often.
     # You will adapt it once you see the DOM in your session.
     if page.get_by_role("link", name="Se connecter").count() > 0:
+        logger.warning("🔐 Not logged in! Please log in manually...")
         page.get_by_role("link", name="Se connecter").first.click()
         page.pause()  # user logs in, handles 2FA/captcha if any
+        logger.info("✓ Login completed")
         page.goto(
             "https://www.leboncoin.fr/deposer-une-annonce",
             wait_until="domcontentloaded",
         )
+    else:
+        logger.debug("✓ Already logged in")
 
 
 def _fill_form(page: Page, payload: AdPayload) -> None:

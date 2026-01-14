@@ -9,6 +9,7 @@ dependencies = [
     "google-auth>=2.45.0",
     "google-auth-httplib2>=0.3.0",
     "google-auth-oauthlib>=1.2.2",
+    "loguru>=0.7.3",
     "playwright>=1.57.0",
     "pydantic>=2.12.5",
     "pydantic-settings>=2.12.0",
