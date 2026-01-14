@@ -91,6 +91,7 @@ git push --no-verify
 - **`lbc.py`**: Playwright automation for Leboncoin ad submission
 - **`main.py`**: Orchestration layer that ties all components together
 - **`settings.py`**: Pydantic Settings-based configuration with validation and defaults
+- **`logger.py`**: Loguru-based logging configuration with colors and file rotation
 
 ### Configuration Management
 
@@ -109,6 +110,33 @@ from src.settings import get_settings
 
 settings = get_settings()  # Singleton pattern
 print(settings.sheets_id)
+```
+
+### Logging
+
+The project uses **Loguru** for beautiful, structured logging with emojis and colors.
+
+**Features:**
+- **Console output**: Colorized logs with timestamps, levels, and code locations
+- **File rotation**: Daily log files in `logs/` with 30-day retention and compression
+- **Levels**: INFO to console, DEBUG+ to files
+- **Emojis**: Visual indicators for different operations (🚀 start, 📊 sheets, 🖼️ images, etc.)
+
+**Log files:**
+- Location: `logs/lbc_publisher_YYYY-MM-DD.log`
+- Rotation: Daily at midnight
+- Retention: 30 days
+- Compression: ZIP for old logs
+
+**Usage in code:**
+```python
+from src.logger import logger
+
+logger.info("Normal operation")
+logger.success("Operation succeeded")
+logger.warning("Warning message")
+logger.error("Error occurred")
+logger.debug("Debug information")
 ```
 
 ### Authentication
