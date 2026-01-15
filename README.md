@@ -84,7 +84,8 @@ uv run playwright install chrome
    **Proxy Configuration** (Strongly Recommended):
    - Datadome detects datacenter IPs and VPNs instantly
    - Use residential proxies for best results (90%+ success rate)
-   - See [ANTI_DETECTION.md](ANTI_DETECTION.md#1-critique--proxies-résidentiels) for provider recommendations
+   - **Recommended**: Smartproxy (~15€ for 2GB = 300 ads) - See [SMARTPROXY_SETUP.md](SMARTPROXY_SETUP.md) for setup guide
+   - See [ANTI_DETECTION.md](ANTI_DETECTION.md#1-critique--proxies-résidentiels) for other provider options
 
    **Conservative Settings** (if experiencing detection):
    - Increase delays: `LBC_DELAY_MIN=8`, `LBC_DELAY_MAX=15`
@@ -193,12 +194,14 @@ lbc-publisher/
 ├── tests/              # Unit tests
 ├── .githooks/          # Git hooks for code quality
 ├── ANTI_DETECTION.md   # Anti-Datadome strategies (14 techniques)
+├── SMARTPROXY_SETUP.md # Smartproxy configuration guide (recommended)
 ├── CLAUDE.md           # AI assistant documentation
 └── README.md           # This file
 ```
 
 ## Documentation
 
+- **[SMARTPROXY_SETUP.md](SMARTPROXY_SETUP.md)**: Step-by-step Smartproxy setup guide (recommended for production)
 - **[ANTI_DETECTION.md](ANTI_DETECTION.md)**: Comprehensive anti-Datadome strategies and techniques
 - **[CLAUDE.md](CLAUDE.md)**: Detailed architecture and implementation notes for AI assistants
 - **[.githooks/README.md](.githooks/README.md)**: Git hooks documentation
