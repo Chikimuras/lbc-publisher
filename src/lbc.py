@@ -129,6 +129,7 @@ def publish_ad(
             geolocation={"longitude": 2.3522, "latitude": 48.8566},  # Paris coordinates
             permissions=["geolocation"],
             proxy=proxy_config,  # Add proxy configuration
+            ignore_https_errors=True,  # Ignore SSL errors when using proxy
         )
 
         # Inject JavaScript to further hide automation
@@ -154,6 +155,23 @@ def publish_ad(
 
         page = context.new_page()
 
+        # Capture console errors for debugging (but ignore proxy errors)
+        console_logs = []
+
+        def handle_console(msg):
+            text = msg.text
+            console_logs.append(f"[{msg.type}] {text}")
+            # Ignore proxy errors (402, 502) to reduce noise
+            if (
+                msg.type in ["error", "warning"]
+                and "402" not in text
+                and "502" not in text
+                and "Residential Failed" not in text
+            ):
+                logger.warning(f"Console {msg.type}: {text}")
+
+        page.on("console", handle_console)
+
         # Apply playwright-stealth to hide automation signals
         logger.debug("🛡️  Applying stealth mode...")
         stealth = Stealth()
@@ -164,11 +182,29 @@ def publish_ad(
         cursor = create_cursor(page)
 
         logger.info(f"🌐 Navigating to Leboncoin: {LBC_DEPOSIT_URL}")
-        page.goto(LBC_DEPOSIT_URL, wait_until="domcontentloaded")
+        # Set longer timeout for proxy (60s instead of 30s)
+        page.set_default_timeout(60000)
+
+        # Try networkidle first, fallback to domcontentloaded if proxy issues
+        try:
+            page.goto(LBC_DEPOSIT_URL, wait_until="networkidle", timeout=45000)
+            logger.debug("✓ Page fully loaded (networkidle)")
+        except Exception as e:
+            logger.warning(
+                f"⚠️  Networkidle timeout (proxy issues), trying domcontentloaded: {e}"
+            )
+            page.goto(LBC_DEPOSIT_URL, wait_until="domcontentloaded", timeout=30000)
+            logger.debug("✓ Page loaded (domcontentloaded)")
+            # Wait extra time for JS to execute even if resources fail
+            _human_delay(5, 8)
+
         _human_delay(delay_min, delay_max)
 
-        # Verify JavaScript is working
-        _verify_javascript(page)
+        # Verify JavaScript is working (skip if proxy issues)
+        try:
+            _verify_javascript(page)
+        except Exception as e:
+            logger.warning(f"⚠️  JavaScript verification skipped (proxy issues): {e}")
 
         # Random initial mouse movement with ghost cursor
         logger.debug("🖱️  Performing initial human-like mouse movements...")
@@ -181,8 +217,34 @@ def publish_ad(
         # Random scroll
         _random_scroll(page, delay_min, delay_max)
 
+        # DEBUG: Take screenshot to see what's on the page
+        logger.debug("📸 Taking screenshot for debugging...")
+        page.screenshot(path="./.state/debug_before_login.png")
+        logger.info("Screenshot saved to ./.state/debug_before_login.png")
+
         # If you're not logged in, do it manually on first run:
         _ensure_logged_in(page)
+
+        # DEBUG: Take screenshot after login
+        logger.debug("📸 Taking screenshot after login check...")
+        page.screenshot(path="./.state/debug_after_login.png")
+        logger.info("Screenshot saved to ./.state/debug_after_login.png")
+
+        # DEBUG: Check if we're on the right page
+        current_url = page.url
+        page_title = page.title()
+        logger.info(f"📍 Current URL: {current_url}")
+        logger.info(f"📄 Page title: {page_title}")
+
+        # Check if we got blocked
+        if (
+            "error" in page_title.lower()
+            or "403" in page_title
+            or "forbidden" in page_title.lower()
+        ):
+            raise RuntimeError(
+                f"Blocked by CloudFront/CDN: {page_title}. Check proxy geolocation."
+            )
 
         # Fill the deposit form
         logger.info("📝 Filling ad form...")
